@@ -39,7 +39,7 @@ class HandDetector:
                                         min_detection_confidence=self.detectionCon,
                                         min_tracking_confidence=self.minTrackCon)
 
-        self.mpDraw = mp.solutions.drawing_utils
+        self.mpDraw = mp.solutions.drawing_utils # type: ignore
         self.tipIds = [4, 8, 12, 16, 20]
         self.fingers = []
         self.lmList = []
@@ -118,12 +118,12 @@ class HandDetector:
 
             # Thumb
             if myHandType == "Right":
-                if myLmList[self.tipIds[0]][0] > myLmList[self.tipIds[0] - 1][0]:
+                if myLmList[self.tipIds[0]][0] < myLmList[self.tipIds[0] - 1][0]:
                     fingers.append(1)
                 else:
                     fingers.append(0)
             else:
-                if myLmList[self.tipIds[0]][0] < myLmList[self.tipIds[0] - 1][0]:
+                if myLmList[self.tipIds[0]][0] > myLmList[self.tipIds[0] - 1][0]:
                     fingers.append(1)
                 else:
                     fingers.append(0)
@@ -135,6 +135,27 @@ class HandDetector:
                 else:
                     fingers.append(0)
         return fingers
+    
+    def fingersUp2(self, myHand, img=None, draw=False):
+        fingers = []
+        myHandType = myHand["type"]
+        myLmList = myHand["lmList"]
+
+        if self.results.multi_hand_landmarks:
+            for i in range(0,5) :
+                start = (i*4) + 1
+                end = start + 3
+
+                fr_h = 0
+                for k in range(start, end) :
+                    l, _, _ = self.findDistance(myLmList[k][0:2], myLmList[(k+1)][0:2],img=img,)
+                    fr_h += l
+
+                x1, y1 , z1 = myLmList[start]
+                x2, y2 , z2 = myLmList[end]
+
+                distance = math.hypot(x2 - x1, y2 - y1)
+                prcnt = int(distance/fr_h * 100)
 
     def findDistance(self, p1, p2, img=None, color=(255, 0, 255), scale=5, draw=False):
         """
@@ -160,6 +181,8 @@ class HandDetector:
             cv2.circle(img, (cx, cy), scale, color, cv2.FILLED)
 
         return length, info, img
+    
+
 
 
 def main():

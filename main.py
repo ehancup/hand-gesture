@@ -10,6 +10,8 @@ from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 import pyautogui
 import threading
 import keyboard
+from PIL import Image
+import os
 
 ################################################################
 wCam, hCam = 640, 480
@@ -47,6 +49,8 @@ minVol , maxVol,  _ = volume.GetVolumeRange()
 #################################
 space_pressed_time = 0
 down_pressed_time = 0
+rl_pressed_time = 0
+ss_pressed_time = 0
 #################################
 
 
@@ -54,6 +58,20 @@ def press_space():
     keyboard.press_and_release('space')
 def press_down():
     keyboard.press_and_release('down')
+def screen_shot():
+    dir_exist = os.path.exists('ss/')
+    if not dir_exist: os.mkdir('ss/')
+    file_index = 0
+    while True:
+        is_exist = os.path.exists(fr'ss/photo_{file_index}.png')
+        if is_exist:
+            file_index = file_index + 1
+        else:
+            break
+    mySC = pyautogui.screenshot()
+    mySC.save(rf'ss/photo_{file_index}.png')
+    img = Image.open(rf'ss/photo_{file_index}.png')
+    img.show()
 
 
 while True:
@@ -100,19 +118,23 @@ while True:
         center1 = hand1['center']  # Center coordinates of the first hand
         handType1 = hand1["type"]  # Type of the first hand ("Left" or "Right")
 
+        
+
+
         spaceLen, _, img = detector.findDistance(lmList1[4][0:2], lmList1[12][0:2], img, color=(255, 255,0),scale=10)
         downLen, _, img = detector.findDistance(lmList1[4][0:2], lmList1[16][0:2], img, color=(255, 255,0),scale=10)
+        rlLen, _, img = detector.findDistance(lmList1[4][0:2], lmList1[16][0:2], img, color=(255, 255,0),scale=10)
 
         if spaceLen < 30 and (time.time() - space_pressed_time > 1) :
             text_size, _ = cv2.getTextSize("SPACE", cv2.FONT_HERSHEY_DUPLEX, 2, 2)
-            cv2.putText(img, "SPACE", (640//2 - text_size[0] //2, 480//2 + text_size[1] //2), cv2.FONT_HERSHEY_DUPLEX, 2, (255,0,0), 2, cv2.LINE_AA)
+            cv2.putText(img, "SPACE", (640//2 - text_size[0] //2, 480//2 + text_size[1] //2), cv2.FONT_HERSHEY_DUPLEX, 2, (255,0,0), 2, cv2.LINE_AA) # type: ignore
             
             threading.Thread(target=press_space).start()
             space_pressed_time = time.time()      
 
-        if downLen < 10 and (time.time() - down_pressed_time > 1) :
+        if downLen < 25 and (time.time() - down_pressed_time > 1) :
             text_size2, _ = cv2.getTextSize("DOWN", cv2.FONT_HERSHEY_DUPLEX, 2, 2)
-            cv2.putText(img, "DOWN", (640//2 - text_size2[0] //2, 480//2 + text_size2[1] //2), cv2.FONT_HERSHEY_DUPLEX, 2, (255,0,0), 2, cv2.LINE_AA)
+            cv2.putText(img, "DOWN", (640//2 - text_size2[0] //2, 480//2 + text_size2[1] //2), cv2.FONT_HERSHEY_DUPLEX, 2, (255,0,0), 2, cv2.LINE_AA) # type: ignore
 
             threading.Thread(target=press_down).start()
             down_pressed_time = time.time()
@@ -125,17 +147,28 @@ while True:
             center2 = hand2['center']  # Center coordinates of the first hand
             handType2 = hand2["type"]
 
-            betweenLen, _, img = detector.findDistance(lmList1[8][0:2], lmList2[8][0:2], img, color=(255, 255,0),scale=10, draw=True)
+            betweenLen, _, img = detector.findDistance(lmList1[8][0:2], lmList2[8][0:2], img, color=(255, 255,0),scale=10)
             length, _, img = detector.findDistance(lmList2[8][0:2], lmList1[8][0:2], img, color=(255, 255,0),scale=10)
             length1, _, img = detector.findDistance(lmList2[4][0:2], lmList2[8][0:2], img, color=(0, 255,255),scale=10)
             length2, _, img = detector.findDistance(lmList1[4][0:2], lmList1[8][0:2], img, color=(0, 255,255),scale=10)
 
+            ss_length1, _, img = detector.findDistance(lmList1[4][0:2], lmList2[8][0:2], img, color=(0, 255,255),scale=10, draw=True)
+            ss_length2, _, img = detector.findDistance(lmList2[4][0:2], lmList1[8][0:2], img, color=(255, 0,255),scale=10, draw=True)
+
+
             if betweenLen < 10 and (time.time() - down_pressed_time > 1) :
                 text_size2, _ = cv2.getTextSize("DOWN", cv2.FONT_HERSHEY_DUPLEX, 2, 2)
-                cv2.putText(img, "DOWN", (640//2 - text_size2[0] //2, 480//2 + text_size2[1] //2), cv2.FONT_HERSHEY_DUPLEX, 2, (255,0,0), 2, cv2.LINE_AA)
+                cv2.putText(img, "DOWN", (640//2 - text_size2[0] //2, 480//2 + text_size2[1] //2), cv2.FONT_HERSHEY_DUPLEX, 2, (255,0,0), 2, cv2.LINE_AA)# type: ignore
 
                 threading.Thread(target=press_down).start()
                 down_pressed_time = time.time()
+
+            if ss_length1 < 40 and ss_length2 < 40 and (time.time() - ss_pressed_time > 1) :
+                text_size2, _ = cv2.getTextSize("screen shot", cv2.FONT_HERSHEY_DUPLEX, 2, 2)
+                cv2.putText(img, "scree shot", (640//2 - text_size2[0] //2, 480//2 + text_size2[1] //2), cv2.FONT_HERSHEY_DUPLEX, 2, (255,0,0), 2, cv2.LINE_AA)# type: ignore
+
+                threading.Thread(target=screen_shot).start()
+                ss_pressed_time = time.time()
 
             
         # volume.SetMasterVolumeLevel(vol, None)  
@@ -164,8 +197,8 @@ while True:
                 text_size, _ = cv2.getTextSize(TEXT, TEXT_FACE, TEXT_SCALE, TEXT_THICKNESS)
                 text_origin = (position[0] - text_size[0] // 2, position[1] + text_size[1] // 2)
 
-                cv2.circle(img, position, 40, (127,0,127), cv2.FILLED)
-                cv2.putText(img, TEXT, text_origin, TEXT_FACE, TEXT_SCALE, (127,255,127), TEXT_THICKNESS, cv2.LINE_AA)
+                cv2.circle(img, position, 40, (127,0,127), cv2.FILLED) # type: ignore
+                cv2.putText(img, TEXT, text_origin, TEXT_FACE, TEXT_SCALE, (127,255,127), TEXT_THICKNESS, cv2.LINE_AA) # type: ignore
 
-    cv2.imshow('image capture', img)
+    cv2.imshow('image capture', img) # type: ignore
     cv2.waitKey(1)
